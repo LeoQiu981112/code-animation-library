@@ -2,7 +2,7 @@ from pygments.lexers import get_lexer_by_name
 from pygments.formatters import RawTokenFormatter
 from pygments import highlight
 from typing import List, Tuple
-from nord_style import NordStyle
+from src.nord_style import NordStyle
 
 
 class CodeTokenizer:

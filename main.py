@@ -1,8 +1,8 @@
-from tokenizer import CodeTokenizer
-from image_generator import ImageGenerator
+from src.tokenizer import CodeTokenizer
+from src.image_generator import ImageGenerator
 
 
-with open("code_to_run.py", "r") as file:
+with open("src/code_to_run.py", "r") as file:
     # Read the file
     code_string = file.read()
 

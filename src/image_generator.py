@@ -1,7 +1,7 @@
 from typing import List, Tuple
 from PIL import Image, ImageDraw, ImageFont
 from matplotlib import font_manager
-from nord_style import NordStyle
+from src.nord_style import NordStyle
 import traceback
 
 
