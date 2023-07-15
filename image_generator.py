@@ -1,8 +1,6 @@
 from typing import List, Tuple
 from PIL import Image, ImageDraw, ImageFont
 from matplotlib import font_manager
-from pygments.token import Token
-from color_converter import ColorConverter
 from nord_style import NordStyle
 import traceback
 
@@ -68,13 +66,16 @@ class ImageGenerator:
         Returns:
             The generated image.
         """
+        # dimensions
         image_width = 1900
         image_height = 1080
-
         max_line_width = len(max(self.grid, key=len)) * self.cell_width
-        padding_x = (image_width - max_line_width) // 2
-        padding_y = (image_height - len(self.grid) * self.cell_height) // 2
-        line_number_offset = 50  # Adjust this value as needed
+        max_lines = len(self.grid)
+        padding_x = max((image_width - max_line_width) // 2, 0)
+        padding_y = max(
+            (image_height - max_lines * self.cell_height) // 2, 0
+        )  # Ensure padding_y is not negative
+        line_number_width = 40  # Adjust this value as needed
 
         image = Image.new(
             "RGB", (image_width, image_height), color=self.background_color
@@ -82,32 +83,33 @@ class ImageGenerator:
         draw = ImageDraw.Draw(image)
         font = ImageFont.truetype(self.find_font_path(), self.font_size)
         code_style = NordStyle()
-        tokens_set = set()
-        for row_idx, row in enumerate(self.grid):
-            for col_idx, (char, token_type) in enumerate(row):
-                x = col_idx * self.cell_width + padding_x
-                y = row_idx * self.cell_height + padding_y
-                if col_idx == 0:
-                    # Draw the line number, but don't skip to the next iteration
-                    draw.text(
-                        (x - line_number_offset, y),
-                        str(row_idx),
-                        font=font,
-                        fill=(255, 255, 255),
-                    )
-                token_type_str = self.grid[row_idx][col_idx][1].replace("Token.", "")
 
-                token_type = getattr(Token, token_type_str)
-                if token_type not in tokens_set:
-                    tokens_set.add(token_type)
+        # print("grid", self.grid, "\n")
+        for row_idx, row in enumerate(self.grid):
+            # First draw the line number
+            line_number_x = max(
+                padding_x - line_number_width, 0
+            )  # Ensure line_number_x is not negative
+            line_number_y = row_idx * self.cell_height + padding_y
+            draw.text(
+                (line_number_x, line_number_y),
+                str(row_idx + 1),
+                font=font,
+                fill=(255, 255, 255),
+            )
+
+            # Then draw the code
+            for col_idx, (char, token_type) in enumerate(row):
+                x = max(
+                    col_idx * self.cell_width + padding_x + line_number_width, 0
+                )  # Ensure x is not negative
+                y = max(
+                    row_idx * self.cell_height + padding_y, 0
+                )  # Ensure y is not negative
+                token_type_str = self.grid[row_idx][col_idx][1]
                 try:
-                    desired_color = code_style.get_color(token_type)
-                    rgb_color = ColorConverter.convert_color(
-                        desired_color, "hex", "rgb"
-                    )
-                    draw.text((x, y), char, font=font, fill=rgb_color)
+                    desired_color = code_style.get_color(token_type_str)
+                    draw.text((x, y), char, font=font, fill=desired_color)
                 except Exception as e:
-                    # traceback.print_exc()
-                    # end program
-                    pass
+                    traceback.print_exc()
         return image

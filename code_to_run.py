@@ -27,7 +27,7 @@ class CodeTokenizer:
         Tokenize the code into a grid of characters and their types.
         """
         lexer = get_lexer_by_name(self.language)
-        formatter = RawTokenFormatter()
+        formatter = RawTokenFormatter(style=NordStyle)
 
         highlighted_code = highlight(self.code, lexer, formatter)
 
@@ -53,12 +53,3 @@ class CodeTokenizer:
                 for char in trimmed_str:
                     # Whitespace: add to the current line
                     self.grid[-1].append((char, token_type))
-
-    def get_grid(self) -> List[List[Tuple[str, str]]]:
-        """
-        Get the grid of characters and their types.
-
-        Returns:
-            The grid of characters and their types.
-        """
-        return self.grid

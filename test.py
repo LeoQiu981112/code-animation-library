@@ -81,13 +81,11 @@ class Grid:
 
         highlighted_code = highlight(self.code, lexer, formatter)
         preprocessed_tokens = highlighted_code.decode("utf-8").strip().split("\n")
-        print("preprocessed_tokens:", preprocessed_tokens, "\n")
         self.processed_tokens = []
         for token in preprocessed_tokens:
             # Split the token string into token type and character
             token_type, char = token.split("\t")
             self.processed_tokens.append((token_type, char))
-        print("self.processed_tokens:", self.processed_tokens, "\n")
 
     def populate_grid(self):
         # ... Populate the grid by iterating over tokens ...
