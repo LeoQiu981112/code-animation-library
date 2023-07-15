@@ -15,3 +15,16 @@ The Code Animation Library is a Python library that allows you to create animate
 
    ```shell
    git clone https://github.com/your-username/code-animation-library.git
+
+   cd code-animation-library
+   ```
+2. Install the required packages:
+
+   ```shell
+   pip install -r requirements.txt
+   ```
+3. Run the code animation library:
+
+   ```shell
+   python3 main.py
+   ```
