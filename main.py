@@ -1,4 +1,3 @@
-
 from tokenizer import CodeTokenizer
 from image_generator import ImageGenerator
 
@@ -29,15 +28,18 @@ class Solution:
             test[nums[i]] = i
         return [-1,-1]
 """
-language = 'python'
+language = "python"
 tokenizer = CodeTokenizer(code, language)
 tokenizer.populate_grid()
 
 # Get the grid of characters and their types
 grid = tokenizer.get_grid()
 # Create an ImageGenerator instance and generate the image
-generator = ImageGenerator(grid, font_size=20, cell_width=15, cell_height=35, background_color=(30, 30, 30))
+generator = ImageGenerator(
+    grid, font_size=20, cell_width=15, cell_height=35, background_color=(30, 30, 30)
+)
 image = generator.generate_image()
 
 # Save the image to a file
-# image.save('code_image.png', dpi=(1200, 1200))
+image.show()
+# image.save("code_image.png", dpi=(1200, 1200))
