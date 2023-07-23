@@ -34,31 +34,6 @@ class ImageGenerator:
         self.cell_height = cell_height
         self.background_color = background_color
 
-    @staticmethod
-    def find_font_path() -> str:
-        """
-        Find the path to a suitable monospaced font.
-
-        Returns:
-            The path to a suitable monospaced font.
-
-        Raises:
-            Exception: If no suitable monospaced font is found.
-        """
-        fonts = [f.fname for f in font_manager.fontManager.ttflist]
-        font_names = [
-            "DejaVu Sans Mono",
-            "Monospace",
-            "Courier New",
-            "Consolas",
-            "FreeMono",
-        ]
-        for name in font_names:
-            for f in fonts:
-                if name.lower() in f.lower():
-                    return f
-        raise Exception("No suitable monospaced font found")
-
     def generate_image(self) -> Image:
         """
         Generate an image of the code.
@@ -81,7 +56,8 @@ class ImageGenerator:
             "RGB", (image_width, image_height), color=self.background_color
         )
         draw = ImageDraw.Draw(image)
-        font = ImageFont.truetype(self.find_font_path(), self.font_size)
+        font_path = "src/font/joystix.otf"
+        font = ImageFont.truetype(font_path, self.font_size)
         code_style = NordStyle()
 
         # print("grid", self.grid, "\n")
