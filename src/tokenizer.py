@@ -33,8 +33,8 @@ class CodeTokenizer:
         preprocessed_tokens: str = highlighted_code.decode("utf-8").strip().split("\n")
         self.processed_tokens = []
         for token in preprocessed_tokens:
-            token_type, char = token.split("\t")
-            self.processed_tokens.append((token_type, char))
+            token_type, token_str = token.split("\t")
+            self.processed_tokens.append((token_type, token_str))
 
     def populate_grid(self):
         self.tokenize()
@@ -45,11 +45,14 @@ class CodeTokenizer:
             if str_to_eval == "'\\n'":
                 # Newline: start a new line of code
                 self.grid.append([])
+            elif str_to_eval.startswith("'\\u") or str_to_eval.startswith("'\\U"):
+                str_to_eval = str_to_eval.encode().decode('unicode_escape')
+                print("str_to_eval", str_to_eval[1:-1])
+                self.grid[-1].append((str_to_eval[1:-1], "Token.Emoji"))
             else:
                 for char in trimmed_str:
                     # Whitespace: add to the current line
                     self.grid[-1].append((char, token_type))
-
     def get_grid(self) -> List[List[Tuple[str, str]]]:
         """
         Get the grid of characters and their types.

@@ -14,6 +14,7 @@ class NordStyle:
         "Token.Literal.String.Double": "#a3be8c",  # String style (light green)
         "Token.Literal.String.Escape": "#ebcb8b",  # String Escape style (light yellow)
         "Token.Literal.Number.Integer": "#8fbcbb",  # Integer style (light teal)
+        "Token.Literal.Number.Float": "#8fbcbb",  # Float style (light teal)
         "Token.Operator": "#81a1c1",  # Operator style (light blue)
         "Token.Punctuation": "#81a1c1",  # Punctuation style (light blue)
         "Token.Literal.String.Doc": "#81a1c1",  # String Doc style (light blue)
@@ -28,6 +29,7 @@ class NordStyle:
         "Token.Name.Exception": "#bf85a8",  # Exception Name style (cool red)
         "Token.Operator.Word": "#81a1c1",  # Operator Word style (light blue)
         "Token.Name.Builtin": "#bf85a8",  # Builtin Name style (cool red)
+        "Token.Emoji": "#ebcb8b"  # Emoji style (light yellow)
     }
 
     def get_color(self, token_type):
