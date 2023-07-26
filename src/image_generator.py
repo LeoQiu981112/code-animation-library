@@ -1,8 +1,10 @@
 from typing import List, Tuple
 from PIL import Image, ImageDraw, ImageFont
-from src.nord_style import NordStyle
 from pilmoji import Pilmoji
+from src.nord_style import NordStyle
+from src.grid import Grid
 import traceback
+
 
 class ImageGenerator:
     """
@@ -11,7 +13,6 @@ class ImageGenerator:
 
     def __init__(
         self,
-        grid: List[List[Tuple[str, str]]],
         font_size: int = 14,
         cell_width: int = 20,
         cell_height: int = 20,
@@ -21,30 +22,32 @@ class ImageGenerator:
         Initialize a new ImageGenerator instance.
 
         Args:
-            grid: The grid of characters and their types.
             font_size: The font size of the characters.
             cell_width: The width of each cell in the grid.
             cell_height: The height of each cell in the grid.
             background_color: The background color of the image.
         """
-        self.grid = grid
         self.font_size = font_size
         self.cell_width = cell_width
         self.cell_height = cell_height
         self.background_color = background_color
 
-    def generate_image(self) -> Image:
+    def generate_image(self, grid_obj: Grid) -> Image:
         """
         Generate an image of the code.
+
+        Args:
+            grid: The grid of characters and their types.
 
         Returns:
             The generated image.
         """
         # dimensions
+        grid = grid_obj.get_grid()
         image_width = 1900
         image_height = 1080
-        max_line_width = len(max(self.grid, key=len)) * self.cell_width
-        max_lines = len(self.grid)
+        max_line_width = len(max(grid, key=len)) * self.cell_width
+        max_lines = len(grid)
         padding_x = max((image_width - max_line_width) // 2, 0)
         padding_y = max(
             (image_height - max_lines * self.cell_height) // 2, 0
@@ -61,7 +64,7 @@ class ImageGenerator:
         emoji_batch = []  # Store emojis here
 
         try:
-            for row_idx, row in enumerate(self.grid):
+            for row_idx, row in enumerate(grid):
                 # First draw the line number
                 line_number_x = max(
                     padding_x - line_number_width, 0
@@ -82,7 +85,7 @@ class ImageGenerator:
                     y = max(
                         row_idx * self.cell_height + padding_y, 0
                     )  # Ensure y is not negative
-                    token_type_str = self.grid[row_idx][col_idx][1]
+                    token_type_str = grid[row_idx][col_idx][1]
                     desired_color = code_style.get_color(token_type_str)
                     # if is emoji, draw differently
                     if token_type_str == "Token.Emoji":

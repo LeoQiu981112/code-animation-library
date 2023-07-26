@@ -3,12 +3,13 @@ from pygments.formatters import RawTokenFormatter
 from pygments import highlight
 from typing import List, Tuple
 
+
 class CodeTokenizer:
     """
     Class for tokenizing code into a grid of characters and their types.
     """
 
-    def __init__(self, code: str, language: str):
+    def __init__(self, language: str):
         """
         Initialize a new CodeTokenizer instance.
 
@@ -16,48 +17,38 @@ class CodeTokenizer:
             code: The code to tokenize.
             language: The language of the code.
         """
-        self.code = code
         self.language = language
-        self.grid = [[]]
 
         self.lexer = get_lexer_by_name(self.language)
         self.formatter = RawTokenFormatter()
 
-    def tokenize(self) -> None:
+    def tokenize(self, code) -> List[Tuple[str, str]]:
         """
-        Tokenize the code into a grid of characters and their types.
-        """
-
-        highlighted_code = highlight(self.code, self.lexer, self.formatter)
-
-        preprocessed_tokens: str = highlighted_code.decode("utf-8").strip().split("\n")
-        self.processed_tokens = []
-        for token in preprocessed_tokens:
-            token_type, token_str = token.split("\t")
-            self.processed_tokens.append((token_type, token_str))
-
-    def populate_grid(self):
-        self.tokenize()
-        # populate grid by iterating over tokens
-        for item in self.processed_tokens:
-            token_type, str_to_eval = item
-            trimmed_str = str_to_eval[1:-1]
-            if str_to_eval == "'\\n'":
-                # Newline: start a new line of code
-                self.grid.append([])
-            elif str_to_eval.startswith("'\\u") or str_to_eval.startswith("'\\U"):
-                str_to_eval = str_to_eval.encode().decode('unicode_escape')
-                print("str_to_eval", str_to_eval[1:-1])
-                self.grid[-1].append((str_to_eval[1:-1], "Token.Emoji"))
-            else:
-                for char in trimmed_str:
-                    # Whitespace: add to the current line
-                    self.grid[-1].append((char, token_type))
-    def get_grid(self) -> List[List[Tuple[str, str]]]:
-        """
-        Get the grid of characters and their types.
+        Tokenize the code into a list of tuples containing token type and character.
 
         Returns:
-            The grid of characters and their types.
+            A list of tuples containing token type and character.
         """
-        return self.grid
+        highlighted_code = highlight(code, self.lexer, self.formatter)
+        preprocessed_tokens: str = highlighted_code.decode("utf-8").strip().split("\n")
+
+        processed_tokens = []
+        for token in preprocessed_tokens:
+            token_type, token_str = token.split("\t")
+            processed_tokens.append((token_type, token_str[1:-1]))
+
+        return processed_tokens
+
+    def populate_grid(self, grid_obj, code):
+        processed_tokens = self.tokenize(code)
+        for token_type, str_to_eval in processed_tokens:
+            if str_to_eval == "\\n":
+                # Newline: start a new line of code
+                grid_obj.add_line()
+            elif str_to_eval.startswith("\\u") or str_to_eval.startswith("\\U"):
+                str_to_eval = str_to_eval.encode().decode('unicode_escape')
+                grid_obj.add_token(str_to_eval[1:-1], "Token.Emoji")
+            else:
+                for char in str_to_eval:
+                    # Whitespace: add to the current line
+                    grid_obj.add_token(char, token_type)
