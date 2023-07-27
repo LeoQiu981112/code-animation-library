@@ -22,33 +22,38 @@ class CodeTokenizer:
         self.lexer = get_lexer_by_name(self.language)
         self.formatter = RawTokenFormatter()
 
-    def tokenize(self, code) -> List[Tuple[str, str]]:
+    def tokenize(self, grid, code) -> Tuple[List[str], List[str]]:
         """
-        Tokenize the code into a list of tuples containing token type and character.
+        Tokenize the code into two lists: one for characters and one for token types.
 
         Returns:
-            A list of tuples containing token type and character.
+            A tuple of two lists: one for characters and one for token types.
         """
         highlighted_code = highlight(code, self.lexer, self.formatter)
         preprocessed_tokens: str = highlighted_code.decode("utf-8").strip().split("\n")
-
-        processed_tokens = []
+        chars = []
+        token_types = []
         for token in preprocessed_tokens:
             token_type, token_str = token.split("\t")
-            processed_tokens.append((token_type, token_str[1:-1]))
+            for char in token_str[1:-1]:
+                chars.append(char)
+                token_types.append(token_type)
 
-        return processed_tokens
+        return chars, token_types
 
     def populate_grid(self, grid_obj, code):
-        processed_tokens = self.tokenize(code)
-        for token_type, str_to_eval in processed_tokens:
-            if str_to_eval == "\\n":
+        print(grid_obj)
+        chars, token_types = self.tokenize(code)
+        for char, token_type in zip(chars, token_types):
+            if char == "\\n":
                 # Newline: start a new line of code
                 grid_obj.add_line()
-            elif str_to_eval.startswith("\\u") or str_to_eval.startswith("\\U"):
-                str_to_eval = str_to_eval.encode().decode('unicode_escape')
-                grid_obj.add_token(str_to_eval[1:-1], "Token.Emoji")
+                print("added_line:", grid_obj.chars)
+            elif char.startswith("\\u") or char.startswith("\\U"):
+                char = char.encode().decode('unicode_escape')
+                grid_obj.add_token(char[1:-1], "Token.Emoji")
+                print("added_eomji:", grid_obj.chars)
             else:
-                for char in str_to_eval:
-                    # Whitespace: add to the current line
-                    grid_obj.add_token(char, token_type)
+                # Whitespace: add to the current line
+                grid_obj.add_token(char, token_type)
+                print("added char:", grid_obj.chars)

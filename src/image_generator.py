@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import Tuple
 from PIL import Image, ImageDraw, ImageFont
 from pilmoji import Pilmoji
 from src.nord_style import NordStyle
@@ -43,11 +43,11 @@ class ImageGenerator:
             The generated image.
         """
         # dimensions
-        grid = grid_obj.get_grid()
+        chars, token_types = grid_obj.get_grids()
         image_width = 1900
         image_height = 1080
-        max_line_width = len(max(grid, key=len)) * self.cell_width
-        max_lines = len(grid)
+        max_line_width = len(max(chars, key=len)) * self.cell_width
+        max_lines = len(chars)
         padding_x = max((image_width - max_line_width) // 2, 0)
         padding_y = max(
             (image_height - max_lines * self.cell_height) // 2, 0
@@ -64,7 +64,7 @@ class ImageGenerator:
         emoji_batch = []  # Store emojis here
 
         try:
-            for row_idx, row in enumerate(grid):
+            for row_idx, row in enumerate(chars):
                 # First draw the line number
                 line_number_x = max(
                     padding_x - line_number_width, 0
@@ -78,14 +78,14 @@ class ImageGenerator:
                 )
 
                 # Then draw the code
-                for col_idx, (char, token_type) in enumerate(row):
+                for col_idx, char in enumerate(row):
                     x = max(
                         col_idx * self.cell_width + padding_x + line_number_width, 0
                     )  # Ensure x is not negative
                     y = max(
                         row_idx * self.cell_height + padding_y, 0
                     )  # Ensure y is not negative
-                    token_type_str = grid[row_idx][col_idx][1]
+                    token_type_str = token_types[row_idx][col_idx]
                     desired_color = code_style.get_color(token_type_str)
                     # if is emoji, draw differently
                     if token_type_str == "Token.Emoji":

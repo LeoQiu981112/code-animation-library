@@ -72,13 +72,21 @@ class Video:
         frame = self.frame_generator.generate_image(grid)
         frame.save("frames/frame.png")
 
-    def show(self, grid, animations, duration):
-        if not isinstance(animations, list) or not all(callable(a) for a in animations):
-            raise ValueError("Animations must be a list of callable functions or methods.")
-        if not isinstance(duration, int):
-            raise ValueError("Duration must be an integer.")
-        # Render the animations on the video frame
-        for animation in animations:
-            # run the animation by applying it to the grid
-            # animation.apply(self.grid)
-            pass
+    def show(self, grid, *args):
+        if len(args) == 1 and isinstance(args[0], int):
+            # If there's only one argument and it's an integer, treat it as duration
+            duration = args[0]
+            self.show_for_duration(grid, duration)
+        else:
+            # Otherwise, treat all arguments as animations
+            animations = args
+            self.show_with_animations(grid, animations)
+
+    def show_for_duration(self, grid, duration):
+        # Code to show the grid for a certain duration
+        # use imageio to create a video
+        pass
+
+    def show_with_animations(self, grid, animations):
+        # Code to show the grid with animations
+        pass

@@ -19,7 +19,13 @@ if __name__ == "__main__":
 
     grid = Grid()
     grid.insert_highlighted(code_string)
+    chars, token_types = grid.get_grids()
+    print("chars:", chars)
+    print("token_types:", token_types)
+    # image
     video.show_grid(grid)
+
+    # create video of 4 seconds
     # video.show(grid, 4)
     # video.show(
     #     grid,
