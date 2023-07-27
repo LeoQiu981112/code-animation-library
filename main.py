@@ -17,16 +17,13 @@ if __name__ == "__main__":
     video = Video(path)
     # video.set_grid_offset(Position(10, 5))
 
-    grid = Grid()
-    grid.insert_highlighted(code_string)
-    chars, token_types = grid.get_grids()
-    print("chars:", chars)
-    print("token_types:", token_types)
+    grid_obj = Grid()
+    grid_obj.insert_highlighted(code_string)
     # image
-    video.show_grid(grid)
+    video.show_grid(grid_obj)
 
     # create video of 4 seconds
-    # video.show(grid, 4)
+    video.show(grid_obj, 4)
     # video.show(
     #     grid,
     #     Move(grid.line(5), Direction.DOWN),

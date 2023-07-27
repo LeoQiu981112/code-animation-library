@@ -42,21 +42,22 @@ class ImageGenerator:
         Returns:
             The generated image.
         """
-        # dimensions
-        chars, token_types = grid_obj.get_grids()
+        # Dimensions
         image_width = 1900
         image_height = 1080
-        max_line_width = len(max(chars, key=len)) * self.cell_width
-        max_lines = len(chars)
+        max_line_width = len(max(grid_obj.grid, key=len)) * self.cell_width
+        max_lines = len(grid_obj.grid)
         padding_x = max((image_width - max_line_width) // 2, 0)
         padding_y = max(
             (image_height - max_lines * self.cell_height) // 2, 0
         )  # Ensure padding_y is not negative
         line_number_width = 40  # Adjust this value as needed
 
-        image = Image.new("RGB", (image_width, image_height), color=self.background_color)
+        # Create a new image with the specified background color
+        image = Image.new(
+            "RGB", (image_width, image_height), color=self.background_color
+        )
         emoji_image = Pilmoji(image)
-
         draw = ImageDraw.Draw(image)
         font_path = "src/font/joystix.otf"
         font = ImageFont.truetype(font_path, self.font_size)
@@ -64,7 +65,7 @@ class ImageGenerator:
         emoji_batch = []  # Store emojis here
 
         try:
-            for row_idx, row in enumerate(chars):
+            for row_idx, row in enumerate(grid_obj.grid):
                 # First draw the line number
                 line_number_x = max(
                     padding_x - line_number_width, 0
@@ -85,17 +86,20 @@ class ImageGenerator:
                     y = max(
                         row_idx * self.cell_height + padding_y, 0
                     )  # Ensure y is not negative
-                    token_type_str = token_types[row_idx][col_idx]
+                    token_type_str = grid_obj.grid_token_colors[row_idx][col_idx]
                     desired_color = code_style.get_color(token_type_str)
-                    # if is emoji, draw differently
+
+                    # If it's an emoji, draw differently
                     if token_type_str == "Token.Emoji":
                         emoji_batch.append((char, (x, y)))
                         emoji_image.text((x, y), char, font=font)
                     else:
                         draw.text((x, y), char, font=font, fill=desired_color)
+
             # Draw all emojis in a batch
             for emoji_char, emoji_pos in emoji_batch:
                 emoji_image.text(emoji_pos, emoji_char, font=font)
         except Exception:
             traceback.print_exc()
+
         return image
