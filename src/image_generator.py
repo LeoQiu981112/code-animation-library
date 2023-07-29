@@ -2,7 +2,6 @@ from typing import Tuple
 from PIL import Image, ImageDraw, ImageFont
 from pilmoji import Pilmoji
 from src.nord_style import NordStyle
-from src.grid import Grid
 import traceback
 
 
@@ -32,7 +31,7 @@ class ImageGenerator:
         self.cell_height = cell_height
         self.background_color = background_color
 
-    def generate_image(self, grid_obj: Grid) -> Image:
+    def generate_image(self, grid_obj) -> Image:
         """
         Generate an image of the code.
 
@@ -42,9 +41,8 @@ class ImageGenerator:
         Returns:
             The generated image.
         """
-        # Dimensions
-        image_width = 1900
-        image_height = 1080
+        image_width = 1904
+        image_height = 1088
         max_line_width = len(max(grid_obj.grid, key=len)) * self.cell_width
         max_lines = len(grid_obj.grid)
         padding_x = max((image_width - max_line_width) // 2, 0)
@@ -103,3 +101,8 @@ class ImageGenerator:
             traceback.print_exc()
 
         return image
+
+    def generate_image_wrapper(args):
+        # Wrapper function for generate_image, so it can handle multiple arguments
+        image_generator, grid = args
+        return image_generator.generate_image(grid)

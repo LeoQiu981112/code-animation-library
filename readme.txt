@@ -9,6 +9,14 @@ The Code Animation Library is a Python library that allows you to create animate
 - Customizable styles for code highlighting.
 - Support for various animation effects, such as zooming, scrolling, and highlighting.
 
+## workflow:
+
+- The Grid class represents the state of the code with characters, token types, and animations.
+- The Animation classes, such as FadeIn, define the animations that can be applied to the Grid.
+- The AnimationQueue class manages the collection of animations to apply to the Grid.
+- The ImageGenerator class takes a Grid instance and creates an image representation of the code with colors applied based on token types.
+- The Video class manages the frame generation by applying animations from the AnimationQueue to the Grid and then generating and saving frames using imageio.mimsave.
+
 ## Installation
 
 1. Clone the repository:

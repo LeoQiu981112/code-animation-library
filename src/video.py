@@ -1,118 +1,67 @@
-from PIL import Image, ImageDraw, ImageFont
 from src.image_generator import ImageGenerator
+from src.animation import AnimationQueue
 from src.grid import Grid
+from multiprocessing import Pool
+from functools import partial
+import time
 import imageio
-
-
-class Position:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-
-
-class Move:
-    def __init__(self, line, direction):
-        self.line = line
-        self.direction = direction
-
-
-class FadeIn:
-    def __init__(self, line):
-        self.line = line
-
-
-class FadeOut:
-    def __init__(self, line):
-        self.line = line
-
-
-class GlowIn:
-    def __init__(self, line):
-        self.line = line
-
-
-class Insert:
-    def __init__(self, line, text):
-        self.line = line
-        self.text = text
-
-
-class Inline_Insert:
-    def __init__(self, line, text):
-        self.line = line
-        self.text = text
-
-
-class Scroll:
-    @classmethod
-    def center_line(cls, video, line_number):
-        # Calculate the scroll animation to center a specific line in the video
-        pass
 
 
 class Video:
     """
     Class for managing the video stream.
     """
-
     def __init__(self, path):
-        # video settings
-        self.path = path
+        self.output_path = path
         self.fps = 30
-        # frame settings
-        self.grid_offset = Position(0, 0)
+        # tweak later
         self.cell_width = 10
         self.cell_height = 20
         self.font_size = 15
         self.background_color = (40, 40, 40)
-        self.grid = Grid()
-        self.frame_generator = ImageGenerator(
-            font_size=20, cell_width=15, cell_height=35, background_color=(40, 40, 40)
-        )
+        self.frame_generator = ImageGenerator(font_size=20, cell_width=15, cell_height=35, background_color=(40, 40, 40))
+        self.animations = AnimationQueue()
 
-    def set_grid_offset(self, position):
-        self.grid_offset = position
+    def add_animation(self, *args):
+        self.animations.extend(args)
+        print("test:", self.animations, "\n\n")
 
-    def show_grid(self, grid_obj, seconds=3):
-        # Show the grid for a specific amount of time
-        frame = self.frame_generator.generate_image(grid_obj)
-        frame.save("frames/frame.png")
-
-    def show(self, grid, *args):
-        if len(args) == 1 and isinstance(args[0], int):
-            # If there's only one argument and it's an integer, treat it as duration
-            duration = args[0]
-            self.show_for_duration(grid, duration, self.path)
-        else:
-            # Otherwise, treat all arguments as animations
-            animations = args
-            self.show_with_animations(grid, animations)
-
-    def show_for_duration(self, grid, duration, output_file):
+    def generate_frame(self, frame_index, grid_obj):
         """
-        Show the grid for a certain duration and create a video.
+        Generate and return a single frame of the video.
 
-        Args:
-            grid: The grid of characters and their types.
-            duration: The duration in seconds to show the code.
-            output_file: The file name for the output video.
+        Parameters:
+            frame_index (int): The index of the current frame (starts from 0).
+            grid_obj (Grid): The Grid object representing the state of the animation.
+
+        Returns:
+            frame (numpy.ndarray): The generated frame as a NumPy array (image).
         """
-        # Step 1: Create an instance of the ImageGenerator class
-        image_generator = ImageGenerator()
+        # Calculate the current time based on the frame index and frame rate (fps)
+        current_time = frame_index / self.fps
 
-        # Step 2: Generate the frames for the video
-        frames = []
-        num_frames = int(
-            duration * self.fps
-        )  # Assuming self.fps is the frames per second of the video
+        # Apply animations from the AnimationQueue to the grid based on the current time
+        grid_obj.apply_animations(current_time)
 
-        for _ in range(num_frames):
-            image = image_generator.generate_image(grid)
-            frames.append(image)
+        # Draw the grid onto the frame
+        frame = grid_obj.draw()
 
-        # Step 3: Create the video using imageio
-        imageio.mimsave(output_file, frames, fps=self.fps)
+        # You can add any additional drawings, overlays, text, etc., to the frame as needed.
 
-    def show_with_animations(self, grid, animations):
-        # Code to show the grid with animations
-        pass
+        # Simulate some processing time to make the frame generation time-consuming
+        time.sleep(0.1)  # Replace this with your actual rendering code
+
+        return frame
+
+    def render_video(self, grid_obj, num_frames, output_filename="output.mp4", fps=30):
+        p = Pool()
+        generate_frame_partial = partial(self.generate_frame, grid_obj=grid_obj)
+        frames = p.map(generate_frame_partial, range(num_frames))
+        p.close()
+        p.join()
+
+        # Save the frames as a video using imageio.mimsave
+        imageio.mimsave(output_filename, frames, fps=fps)
+
+        return output_filename
+
