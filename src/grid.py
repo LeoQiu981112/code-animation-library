@@ -1,5 +1,6 @@
 from src.tokenizer import CodeTokenizer
-from src.animation import AnimationQueue
+from src.animations import AnimationQueue
+from src.character import Character
 from typing import List, Tuple
 import copy
 
@@ -8,16 +9,14 @@ class Grid:
     """
     Class for managing the grid of characters and their types.
     """
-# -------------------------------initialize-------------------------------------------------#
+
+    # -------------------------------initialize-------------------------------------------------#
 
     def __init__(self):
         """
         Initialize a new CodeGrid instance.
         """
-        self.token_strs = []
-        self.token_types = []
         self.grid = [[]]
-        self.grid_token_colors = [[]]
         self.tokenizer = CodeTokenizer("python")
         self.animation_queue = AnimationQueue()
 
@@ -26,31 +25,44 @@ class Grid:
         Add a new line to the grid.
         """
         self.grid.append([])
-        self.grid_token_colors.append([])
 
-    def add_token(self, char, token_type):
+    def get_line(self, line_number):
         """
-        Add a character and its token type to the current line in the grid.
+        Get a specific line in the grid.
+
+        Args:
+            line_number: The line number of the line to get.
+
+        Returns:
+            The line at the specified line number.
+        """
+        return self.grid[line_number]
+
+    def set_line(self, line_number, line):
+        self.grid[line_number] = line
+
+    def add_character(self, char, token_type, color, position):
+        """
+        Add a character to the current line in the grid.
 
         Args:
             char: The character to add.
             token_type: The token type of the character.
+            color: The color of the character.
+            position: The position of the character.
         """
-        self.grid[-1].append(char)
-        self.grid_token_colors[-1].append(token_type)
+        character = Character(char, token_type, color, position)
+        self.grid[-1].append(character)
 
     def insert_highlighted(self, text):
         # Insert the highlighted text into the grid
-        self.tokenizer.populate_grid(self, text)
+        self.tokenizer.tokenize(self, text)
 
-# --------------------------------animation methods------------------------------------------------#
+    # --------------------------------animation methods------------------------------------------------#
 
     def line(self, line_number):
         # Get a specific line in the grid
-        return self.strs[line_number], self.token_types[line_number]
-
-    def get_line_colors(self, line_number: int) -> List[Tuple[int, int, int]]:
-        return self.grid_token_colors[line_number]
+        return self.grid[line_number]
 
     def apply_animations(self, current_time):
         """
@@ -61,17 +73,14 @@ class Grid:
         """
         for animation in self.animation_queue.animations:
             if animation.is_active(current_time):
-                self.grid = animation.apply(self.grid, current_time)
+                animation.apply(self, current_time)
 
     def copy(self):
         """
         Create a deep copy of this Grid.
         """
         grid_copy = Grid()
-        grid_copy.token_strs = copy.deepcopy(self.token_strs)
-        grid_copy.token_types = copy.deepcopy(self.token_types)
         grid_copy.grid = copy.deepcopy(self.grid)
-        grid_copy.grid_token_colors = copy.deepcopy(self.grid_token_colors)
         # The tokenizer doesn't contain any state, so we can just assign it directly
         grid_copy.tokenizer = self.tokenizer
 

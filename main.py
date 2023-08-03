@@ -1,49 +1,48 @@
-from src.grid import Grid
-from src.video import Video
-from src.animation import FadeIn
+import os
 import time
-
-
-with open("src/source_code.py", "r") as file:
-    # Read the file
-    code_string = file.read()
+from src.video import Video
+from src.grid import Grid
+from src.animations import FadeIn, FadeOut, TypingEffect
 
 if __name__ == "__main__":
+    os.system("rm frames/*")
     video_path = "clips/output_video.mp4"
+
+    # Read the code from a file
     with open("src/source_code.py", "r") as file:
-        # Read the file
         code_string = file.read()
 
+    # Initialize a grid and insert the code
+    grid = Grid()
+    grid.insert_highlighted(code_string)
+
+    # FADE IN first 3 lines
+    grid.animation_queue.add_animation(FadeIn(0, 1, 0))
+    grid.animation_queue.add_animation(FadeIn(0, 1, 1))
+    grid.animation_queue.add_animation(FadeIn(0, 1, 2))
+
+    # FADE OUT lines 6-8
+    grid.animation_queue.add_animation(FadeOut(0, 4, 5))
+    grid.animation_queue.add_animation(FadeOut(0, 4, 6))
+    grid.animation_queue.add_animation(FadeOut(0, 4, 7))
+
+    # type lines 11-13
+    grid.animation_queue.add_animation(TypingEffect(1, 1.5, 10))
+    grid.animation_queue.add_animation(TypingEffect(2, 2.5, 11))
+    grid.animation_queue.add_animation(TypingEffect(3, 3.5, 12))
+
+    # Create a Video object
     video = Video(video_path)
-    # video.set_grid_offset(Position(10, 5))
 
-    grid_obj = Grid()
-    grid_obj.insert_highlighted(code_string)
-    # create video of 4 seconds
+    # Record the start time
     start_time = time.time()
-    # Create a FadeInAnimation that will start at time 2 seconds and last for 1 second,
-    # targeting the line number 2 (assuming line numbering starts from 0)
-    fade_in_animation = FadeIn(2.0, 1.0, 2)
 
-    # Add the animation to the animation queue in the grid
-    grid_obj.animation_queue.add_animation(fade_in_animation)
+    # Render the video
+    video.render_video(grid, duration=8, fps=10)
 
-    # Now, you can call `apply_animations` at the appropriate time to apply the animations
-    # to the grid. For example, if your current time is 2.5 seconds, you can do:
-    current_time = 2.5
-    grid_obj.apply_animations(current_time)
-    video.render_video(grid_obj, 5)
+    # Calculate and print the elapsed time
+    elapsed_time = time.time() - start_time
+    print(f"Video rendering took {elapsed_time} seconds")
 
-    # The line number 2 in the grid will now be faded in based on the time 2.5 seconds.
-    end_time = time.time()
-
-    print(f'Video creation took {end_time - start_time} seconds')
-
-    # video.show(
-    #     grid,
-    #     Move(grid.line(5), Direction.DOWN),
-    #     Move(grid.line(6), Direction.UP),
-    # )
-    # video.show(grid, FadeIn(grid.line(5)), FadeOut(grid.line(6)))
-    # video.show(grid, GlowIn(grid.line(5)))
-    # video.show(Scroll.center_line(video, 8))
+    # Delete all files in frames folder
+    # os.system("rm frames/*")

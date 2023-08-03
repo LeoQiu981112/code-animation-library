@@ -29,17 +29,15 @@ class NordStyle:
         "Token.Name.Exception": "#bf85a8",  # Exception Name style (cool red)
         "Token.Operator.Word": "#81a1c1",  # Operator Word style (light blue)
         "Token.Name.Builtin": "#bf85a8",  # Builtin Name style (cool red)
-        "Token.Emoji": "#ebcb8b"  # Emoji style (light yellow)
+        "Token.Emoji": "#ebcb8b",  # Emoji style (light yellow)
     }
 
     def get_color(self, token_type):
-        color = self.styles.get(token_type)
-        if color:
-            return color
+        color_hex = self.styles.get(token_type)
+        if color_hex:
+            # Convert the hexadecimal color to an RGB tuple
+            color_rgb = tuple(int(color_hex[i : i + 2], 16) for i in (1, 3, 5))
+            return color_rgb + (255,)  # Added alpha value
         else:
             print("No color found for token type:", token_type)
-            return "#81a1c1"
-
-
-# highlighted_code = highlight(code, lexer, formatter)
-# print(highlighted_code)
+            return (130, 177, 255, 255)  # Default color with alpha value
