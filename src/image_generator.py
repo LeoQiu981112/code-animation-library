@@ -1,8 +1,9 @@
-from typing import List, Tuple
+from typing import Tuple
 from PIL import Image, ImageDraw, ImageFont
 from pilmoji import Pilmoji
 from src.nord_style import NordStyle
-from src.grid import Grid
+import random
+import string
 import traceback
 
 
@@ -13,10 +14,10 @@ class ImageGenerator:
 
     def __init__(
         self,
-        font_size: int = 14,
-        cell_width: int = 20,
-        cell_height: int = 20,
-        background_color: Tuple[int, int, int] = (30, 30, 30),
+        font_size: int = 40,
+        cell_width: int = 40,
+        cell_height: int = 40,
+        background_color: Tuple[int, int, int] = (40, 40, 40),
     ):
         """
         Initialize a new ImageGenerator instance.
@@ -32,7 +33,7 @@ class ImageGenerator:
         self.cell_height = cell_height
         self.background_color = background_color
 
-    def generate_image(self, grid_obj: Grid) -> Image:
+    def generate_image(self, grid_obj) -> Image:
         """
         Generate an image of the code.
 
@@ -42,29 +43,29 @@ class ImageGenerator:
         Returns:
             The generated image.
         """
-        # dimensions
-        grid = grid_obj.get_grid()
-        image_width = 1900
-        image_height = 1080
-        max_line_width = len(max(grid, key=len)) * self.cell_width
-        max_lines = len(grid)
+        image_width = 3840
+        image_height = 2160
+        max_line_width = len(max(grid_obj.grid, key=len)) * self.cell_width
+        max_lines = len(grid_obj.grid)
         padding_x = max((image_width - max_line_width) // 2, 0)
         padding_y = max(
             (image_height - max_lines * self.cell_height) // 2, 0
         )  # Ensure padding_y is not negative
-        line_number_width = 40  # Adjust this value as needed
+        line_number_width = 20  # Adjust this value as needed
 
-        image = Image.new("RGB", (image_width, image_height), color=self.background_color)
+        # Create a new image with the specified background color
+        image = Image.new(
+            "RGBA", (image_width, image_height), color=self.background_color
+        )
         emoji_image = Pilmoji(image)
-
         draw = ImageDraw.Draw(image)
         font_path = "src/font/joystix.otf"
         font = ImageFont.truetype(font_path, self.font_size)
         code_style = NordStyle()
         emoji_batch = []  # Store emojis here
-
+        print("Generating image...")
         try:
-            for row_idx, row in enumerate(grid):
+            for row_idx, row in enumerate(grid_obj.grid):
                 # First draw the line number
                 line_number_x = max(
                     padding_x - line_number_width, 0
@@ -74,28 +75,35 @@ class ImageGenerator:
                     (line_number_x, line_number_y),
                     str(row_idx + 1),
                     font=font,
-                    fill=(255, 255, 255),
+                    fill=(255, 255, 255, 255),
                 )
 
                 # Then draw the code
-                for col_idx, (char, token_type) in enumerate(row):
+                for character in row:
                     x = max(
-                        col_idx * self.cell_width + padding_x + line_number_width, 0
+                        character.position.x * self.cell_width
+                        + padding_x
+                        + line_number_width,
+                        0,
                     )  # Ensure x is not negative
                     y = max(
-                        row_idx * self.cell_height + padding_y, 0
+                        character.position.y * self.cell_height + padding_y, 0
                     )  # Ensure y is not negative
-                    token_type_str = grid[row_idx][col_idx][1]
-                    desired_color = code_style.get_color(token_type_str)
-                    # if is emoji, draw differently
-                    if token_type_str == "Token.Emoji":
-                        emoji_batch.append((char, (x, y)))
-                        emoji_image.text((x, y), char, font=font)
+                    if character.token_type == "Token.Emoji":
+                        emoji_batch.append((character.char, (x, y)))
+                        emoji_image.text((x, y), character.char, font=font)
                     else:
-                        draw.text((x, y), char, font=font, fill=desired_color)
+                        draw.text(
+                            (x, y),
+                            character.char,
+                            font=font,
+                            fill=character.color,
+                        )
+
             # Draw all emojis in a batch
             for emoji_char, emoji_pos in emoji_batch:
                 emoji_image.text(emoji_pos, emoji_char, font=font)
+            return image
+
         except Exception:
             traceback.print_exc()
-        return image
