@@ -1,7 +1,3 @@
-Ah, I see. You can definitely add emojis to your README to make it more visually appealing and engaging. Here's an example of how you might do that:
-
----
-
 # Code Animation Library 🎞️💻
 
 The Code Animation Library is a Python library that allows you to create animated visualizations of code snippets. It utilizes Pygments for syntax highlighting and PIL (Python Imaging Library) for image manipulation.
