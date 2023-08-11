@@ -1,13 +1,50 @@
-def fade_in_test():
-    print("fade in test")
-    print("test:", self.animations, "\n\n")
+class Solution:
+    def twoSum(self, nums: List[int], target: int) -> List[int]:
+        # 1. brute force
+        # for i in range(len(nums)):
+        #     for j in range(i+1, len(nums)):
 
 
-def fade_out_test():
-    print("fade out test")
-    print("test:", self.animations, "\n\n")
 
 
-def typing_test():
-    print("typing test")
-    print("test:", self.animations, "\n\n")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# last line

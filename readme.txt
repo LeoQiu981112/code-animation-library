@@ -1,5 +1,3 @@
-Ah, I see. You can definitely add emojis to your README to make it more visually appealing and engaging. Here's an example of how you might do that:
-
 ---
 
 # Code Animation Library 🎞️💻
@@ -36,6 +34,20 @@ The Code Animation Library is a Python library that allows you to create animate
 
 ## Patch Notes 📝
 
+### Version 0.4 (Latest) 🚀
+
+- **Enhanced Video Class**: Introduced improvements in the `Video` class, including optimized multiprocessing, refactoring, and logging.
+- **Animation Queue Management**: Moved animation queue out of the grid and split visual and grid effects for better control.
+- **Precomputed Animations**: Implemented a new system to precompute animations that need to be applied, enhancing efficiency in frame generation.
+- **Enhanced Grid Handling**: Preallocated lines in the grid and optimized grid copying, improving efficiency and maintainability.
+- **Debugging Enhancements**: Fixed issues related to fade-in animation and added logging for better debugging and development.
+- **Performance Optimization**: Reduced video rendering time and made significant strides in optimizing the library's overall performance.
+- **Updated font to use Mono
+- **Upcoming Features**:
+  - **Advanced Visual Effects**: Explore new effects like zooming, scrolling, highlighting, and more.
+  - **Integration with Tools**: Consider integration with tools like Premiere Pro for advanced editing.
+  - **Performance Optimization**: Continue to focus on enhancing rendering performance and user experience.
+
 ### Version 0.3 🚀
 
 - **Added `Character` class**: This class represents a character in the code. Each character has a token type, color (now in RGBA), and position.
@@ -47,8 +59,6 @@ The Code Animation Library is a Python library that allows you to create animate
 - **Grid updated to be numpy compatible**: This update allows for more efficient manipulation and processing of the grid.
 
 - **Added Video class**: This class manages the generation of video frames.
-
-- **Added emoji support**: Emojis can now be included in the code and will be properly displayed.
 
 - **Added support for custom colors and fonts**: You can now customize the appearance of your code with different colors and fonts.
 
@@ -65,5 +75,3 @@ The Code Animation Library is a Python library that allows you to create animate
   - **Cursor**: This feature will allow you to add a cursor to your animations, simulating the typing of the code and guiding the viewer's attention. Used in combination with the highlighting feature, it will provide clear visual guidance for viewers to follow along with the code.
 
 ---
-
-I hope this helps! Let me know if you need further assistance.

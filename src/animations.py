@@ -1,163 +1,399 @@
 from abc import ABC, abstractmethod
-from src.tokenizer import CodeTokenizer
-from src.character import Character
-import copy
+from typing import List, Tuple, Optional, Union, Dict
+from typing import TYPE_CHECKING
 
 
-# Animation Classes
+if TYPE_CHECKING:
+    from src.grid import Grid
+HIGHLIGHT_COLOR = (255, 255, 0, 255)
+TRANSPARENT_COLOR = (40, 40, 40, 0)
+
+
 class Animation(ABC):
-    def __init__(self, start_time, duration):
-        self.start_time = start_time
-        self.duration = duration
+    """
+    Abstract base class for all animations.
+    """
+
+    def __init__(self, start_frame, end_frame):
+        self.start_frame = start_frame
+        self.end_frame = end_frame
 
     @abstractmethod
-    def apply(self, grid, current_time):
+    def apply(self, grid: "Grid", current_time: float) -> None:
+        """
+        Apply the animation on the grid at the given time.
+
+        Parameters:
+        grid (Grid): The grid on which to apply the animation.
+        current_time (float): The current time.
+        """
         pass
 
-    def is_active(self, current_time):
-        return self.start_time <= current_time < self.start_time + self.duration
+    def persist(self, grid: "Grid") -> None:
+        """
+        Persist the final state of the animation on the grid.
+        """
+        pass
+
+    def is_active(self, frame_index: int) -> bool:
+        """
+        Return True if the animation is active at the given frame index.
+        """
+        return self.start_frame <= frame_index <= self.end_frame
+
+    def is_finished(self, frame_index: int) -> bool:
+        """
+        Return True if the animation is finished at the given frame index.
+        """
+        return frame_index > self.end_frame
 
 
-class TypingEffect(Animation):
-    def __init__(self, start_time, duration, line_number):
-        super().__init__(start_time, duration)
+class VisualEffect(Animation):
+    """Base class for all visual effects."""
+
+    def __init__(
+        self,
+        start_frame: int,
+        end_frame: int,
+        line_number: int,
+        start_index: Optional[int] = None,
+        end_index: Optional[int] = None,
+        persist_duration: int = 0,
+    ):
+        super().__init__(start_frame, end_frame)
         self.line_number = line_number
-        self.original_colors = None  # Store the original colors here
-
-    def apply(self, grid_obj, current_time):
-        if not self.is_active(current_time):
-            return
-
-        # Get the line
-        line = grid_obj.get_line(self.line_number)
-
-        # If this is the first time the animation is being applied, store the original colors
-        if self.original_colors is None:
-            self.original_colors = [char.color for char in line]
-            for char in line:
-                char.color = (40, 40, 40, 255)  # Make all characters transparent
-
-        # Calculate how many characters should be visible based on the current time
-        proportion_done = max(0, (current_time - self.start_time) / self.duration)
-        num_chars = int(proportion_done * len(line))
-
-        # Change the color of the appropriate number of characters back to their original color
-        for i in range(num_chars):
-            line[i].color = self.original_colors[i]
+        self.start_index = start_index
+        self.end_index = end_index
+        self.persist_duration = persist_duration
 
 
-class FadeIn(Animation):
-    def __init__(self, start_time, duration, line_number, start_color=(40, 40, 40)):
-        super().__init__(start_time, duration)
+class GridEffect(Animation):
+    """Base class for all grid-changing effects."""
+
+    def __init__(
+        self,
+        start_frame: int,
+        end_frame: int,
+        line_number: int,
+        start_index: Optional[int] = None,
+        end_index: Optional[int] = None,
+        persist_duration: int = 0,
+    ):
+        super().__init__(start_frame, end_frame)
         self.line_number = line_number
-        self.start_color = start_color
-
-    def apply(self, grid_obj, current_time):
-        if not self.is_active(current_time):
-            return
-
-        progress = max(0, (current_time - self.start_time) / self.duration)
-
-        line = grid_obj.get_line(self.line_number)
-
-        for character in line:
-            end_color = character.color
-            current_color = tuple(
-                start + int((end - start) * progress)
-                for start, end in zip(self.start_color, end_color[:3])
-            )
-
-            if len(self.start_color) == 3:
-                current_color += (255,)
-
-            character.color = current_color
+        self.start_index = start_index
+        self.end_index = end_index
+        self.persist_duration = persist_duration
 
 
-class FadeOut(Animation):
-    def __init__(self, start_time, duration, line_number, end_color=(40, 40, 40)):
-        super().__init__(start_time, duration)
-        self.line_number = line_number
-        self.end_color = end_color
-
-    def apply(self, grid_obj, current_time):
-        if not self.is_active(current_time):
-            return
-
-        progress = max(0, (current_time - self.start_time) / self.duration)
-
-        line = grid_obj.get_line(self.line_number)
-
-        for character in line:
-            start_color = character.color
-            current_color = tuple(
-                start + int((end - start) * progress)
-                for start, end in zip(start_color[:3], self.end_color)
-            )
-
-            if len(self.end_color) == 3:
-                current_color += (255,)
-
-            character.color = current_color
-
-
-# AnimationQueue Class
 class AnimationQueue:
+    """
+    A queue of animations to be applied on the grid.
+    """
+
     def __init__(self):
-        self.animations = []
+        self.visual_effects: List[VisualEffect] = []
+        self.grid_effects: List[GridEffect] = []
 
-    def add_animation(self, animation):
-        if not isinstance(animation, Animation):
-            raise TypeError(
-                "Only Animation instances can be added to the AnimationQueue."
+    def add_visual_effect(self, effect: VisualEffect) -> None:
+        self.visual_effects.append(effect)
+
+    def add_grid_effect(self, effect: GridEffect) -> None:
+        self.grid_effects.append(effect)
+
+    def compute_animation_states(self, duration: float, fps: float):
+        """
+        Compute and return animations states for each frame.
+        """
+        total_frames = int(duration * fps)
+        visual_frame_states, grid_frame_states = [], []
+
+        def compute_frame_states(animations):
+            frame_states = []
+            for frame_index in range(total_frames):
+                active_animations = []
+                for animation in animations:
+                    if animation.is_active(frame_index) or (
+                        animation.is_finished(frame_index)
+                        and frame_index
+                        <= animation.end_frame + animation.persist_duration
+                    ):
+                        active_animations.append(animation)
+                frame_states.append(active_animations)
+            return frame_states
+
+        visual_frame_states = compute_frame_states(self.visual_effects)
+        grid_frame_states = compute_frame_states(self.grid_effects)
+        return visual_frame_states, grid_frame_states
+
+
+class FadeIn(VisualEffect):
+    def __init__(
+        self,
+        start_frame: int,
+        end_frame: int,
+        line_number: int,
+        start_color: Tuple[int, int, int, int] = TRANSPARENT_COLOR,
+        persist_duration: int = 0,
+    ):
+        super().__init__(
+            start_frame, end_frame, line_number, persist_duration=persist_duration
+        )
+        self.start_color = start_color
+        self.final_colors = None
+
+    @staticmethod
+    def ease_in_quad(x):
+        return x * x
+
+    @staticmethod
+    def calculate_color(progress, start_color, end_color):
+        """
+        Calculate the color at the given progress between the start and end colors.
+        color is a tuple of (r, g, b, a) values.
+        """
+        return tuple(
+            int(start_val + (end_val - start_val) * progress)
+            for start_val, end_val in zip(start_color, end_color)
+        )
+
+    def apply(self, grid_obj: "Grid", frame_index: int) -> None:
+        line = grid_obj.get_line(self.line_number)
+        if self.is_active(frame_index):
+            total_frames = self.end_frame - self.start_frame
+            frames_elapsed = frame_index - self.start_frame
+            linear_progress = max(0, frames_elapsed / total_frames)
+            progress = self.ease_in_quad(linear_progress)
+            for char in line.iter_characters():
+                char.set_visibility(True)
+                target_color = char.get_color()
+                current_color = self.calculate_color(
+                    progress, self.start_color, target_color
+                )
+                char.set_color(current_color)
+            # print(f"fade in at frame, {frame_index}")
+        elif (
+            self.is_finished(frame_index)
+            and frame_index <= self.end_frame + self.persist_duration
+        ):
+            # print(
+            #     f"Persisting fade-in effect for line {self.line_number} at frame {frame_index}"
+            # )
+            for char in line.iter_characters():
+                char.set_visibility(True)
+
+
+class WipeLine(VisualEffect):
+    def __init__(
+        self,
+        start_frame: int,
+        end_frame: int,
+        line_number: int,
+        wipe_mode: str = "opacity",  # Can be either "opacity" or "space"
+        persist_duration: int = 0,
+        target_color: Tuple[int, int, int, int] = (40, 40, 40, 0),  # Background color
+    ):
+        super().__init__(
+            start_frame, end_frame, line_number, persist_duration=persist_duration
+        )
+        self.wipe_mode = wipe_mode
+        self.target_color = target_color
+
+    def apply(self, grid_obj: "Grid", frame_index: int) -> None:
+        if self.is_active(frame_index):
+            # print(f"wipe line at frame, {frame_index}")
+            line = grid_obj.get_line(self.line_number)
+            total_frames = self.end_frame - self.start_frame
+            frames_elapsed = frame_index - self.start_frame
+            linear_progress = max(0, min(frames_elapsed / total_frames, 1))
+
+            # Apply the wipe effect based on the selected mode
+            if self.wipe_mode == "opacity":
+                for char in line.iter_characters():
+                    char.set_visibility(True)
+                    start_color = char.get_color()
+                    current_color = tuple(
+                        start + int((end - start) * linear_progress)
+                        for start, end in zip(start_color, self.target_color)
+                    )
+                    char.set_color(current_color)
+        elif (
+            self.is_finished(frame_index)
+            and frame_index <= self.end_frame + self.persist_duration
+        ):
+            # print(f"Persisting wipe effect at frame {frame_index}")
+            line = grid_obj.get_line(self.line_number)
+            if self.wipe_mode == "opacity":
+                for char in line.iter_characters():
+                    char.set_visibility(True)
+                    char.set_color(self.target_color)
+            # Additional logic for persisting the "space" mode
+
+
+class UpdateLineContent(GridEffect):
+    def __init__(
+        self,
+        start_frame: int,
+        end_frame: int,
+        line_number: int,
+        new_content: str,
+        persist_duration: int = 0,
+    ):
+        super().__init__(
+            start_frame, end_frame, line_number, persist_duration=persist_duration
+        )
+        # self.line_number = line_number
+        self.new_content = new_content
+        # self.persist_duration = persist_duration
+
+    def apply(self, grid_obj: "Grid", frame_index: int) -> None:
+        if self.is_active(frame_index) or (
+            self.is_finished(frame_index)
+            and frame_index <= self.end_frame + self.persist_duration
+        ):
+            # print(f"UpdateLineContent at frame, {frame_index}")
+            line = grid_obj.get_line(self.line_number)
+            line.tokens = []
+            grid_obj.tokenizer.tokenize_line(line, self.new_content)
+
+
+class TypingEffect(VisualEffect):
+    def __init__(
+        self,
+        start_frame: int,
+        end_frame: int,
+        line_number: int,
+        persist_duration: int = 0,
+    ):
+        super().__init__(start_frame, end_frame, line_number)
+        self.persist_duration = persist_duration
+        self.total_frames = end_frame - start_frame
+
+    def apply(self, grid_obj: "Grid", frame_index: int) -> None:
+        if self.is_active(frame_index):
+            # print(f"TypingEffect at frame, {frame_index}")
+            line = grid_obj.get_line(self.line_number)
+            total_chars = sum(len(token.characters) for token in line.tokens)
+            chars_to_display = int(
+                ((frame_index - self.start_frame) / self.total_frames) * total_chars
             )
-        self.animations.append(animation)
 
-    def extend(self, animations):
-        if not all(isinstance(animation, Animation) for animation in animations):
-            raise TypeError(
-                "Only Animation instances can be added to the AnimationQueue."
-            )
-        self.animations.extend(animations)
+            char_counter = 0
+            for char in line.iter_characters():
+                if char_counter < chars_to_display:
+                    char.set_visibility(True)
+                char_counter += 1
+        elif (
+            self.is_finished(frame_index)
+            and frame_index <= self.end_frame + self.persist_duration
+        ):
+            # print(f"Persisting TypingEffect effect at frame {frame_index}")
+            self.persist(grid_obj)
 
-    def apply_animations(self, grid, current_time):
-        for animation in self.animations:
-            if animation.is_active(current_time):
-                animation.apply(grid, current_time)
-
-    def get_duration(self):
-        return max(animation.duration for animation in self.animations)
+    def persist(self, grid: "Grid") -> None:
+        line = grid.get_line(self.line_number)
+        for token in line:
+            token.set_visibility(True)
 
 
-# Grid Class
-class Grid:
-    def __init__(self):
-        self.grid = [[]]
-        self.tokenizer = CodeTokenizer("python")
-        self.animation_queue = AnimationQueue()
+class BlinkEffect(VisualEffect):
+    pass
 
-    def add_line(self):
-        self.grid.append([])
 
-    def set_line(self, line_number, line):
-        self.grid[line_number] = line
+class ScrollToLine(Animation):
+    def __init__(self, start_time: float, end_time: float, target_line: int):
+        super().__init__(start_time, end_time)
+        self.target_line = target_line
+        self.start_time = start_time
+        self.end_time = end_time
+        self.previous_scroll_amount = 0
 
-    def add_character(self, char, token_type, color, position):
-        character = Character(char, token_type, color, position)
-        self.grid[-1].append(character)
+    def get_progress(self, current_time: float) -> float:
+        """
+        Calculate the progress of the animation.
 
-    def insert_highlighted(self, text):
-        self.tokenizer.tokenize(self, text)
+        Parameters:
+        current_time (float): The current time.
 
-    def get_line(self, line_number):
-        return self.grid[line_number]
+        Returns:
+        float: The progress of the animation.
+        """
+        total_duration = self.end_time - self.start_time
+        elapsed_time = current_time - self.start_time
+        return min(max(elapsed_time / total_duration, 0), 1)
 
-    def apply_animations(self, current_time):
-        for animation in self.animation_queue.animations:
-            if animation.is_active(current_time):
-                animation.apply(self, current_time)
+    def apply(self, grid: "Grid", current_time: float) -> None:
+        """
+        Apply the animation on the grid at the given time.
 
-    def copy(self):
-        grid_copy = Grid()
-        grid_copy.grid = copy.deepcopy(self.grid)
-        grid_copy.tokenizer = self.tokenizer
-        return grid_copy
+        Parameters:
+        grid (Grid): The grid on which to apply the animation.
+        current_time (float): The current time.
+        """
+        progress = self.get_progress(current_time)
+
+        # Use an easing function to calculate the scroll amount
+        scroll_amount = self.easeInOutQuad(progress) * self.target_line
+
+        diff = scroll_amount - self.previous_scroll_amount
+        int_diff = round(diff)
+        self.previous_scroll_amount += int_diff
+
+        for line in grid.grid:
+            # for character in line:
+            #     character.position.y -= int_diff
+            line.move(0, -int_diff)
+
+    @staticmethod
+    def easeInOutQuad(t: float) -> float:
+        """
+        A simple easing function that accelerates at the start and decelerates at the end.
+
+        Parameters:
+        t (float): The progress of the animation.
+
+        Returns:
+        float: The result of the easing function.
+        """
+        if t < 0.5:
+            return 2 * t * t
+        else:
+            return -1 + (4 - 2 * t) * t
+
+
+class Highlight(Animation):
+    def __init__(
+        self,
+        start_time: float,
+        duration: float,
+        line_number: int,
+        start_index: Optional[int] = None,
+        end_index: Optional[int] = None,
+        color: Tuple[int, int, int, int] = (255, 255, 0, 255),
+    ):
+        super().__init__(start_time, duration)
+        self.line_number = line_number
+        self.start_index = start_index
+        self.end_index = end_index
+        self.color = color
+
+    def apply(self, grid_object: "Grid", current_time: float) -> None:
+        """
+        Apply the animation on the grid at the given time.
+
+        Parameters:
+        grid_object (Grid): The grid on which to apply the animation.
+        current_time (float): The current time.
+        """
+        if not self.is_active(current_time):
+            return
+
+        line = grid_object.get_line(self.line_number)
+
+        # If start_index and end_index are None, highlight the entire line
+        if self.start_index is None and self.end_index is None:
+            for character in line:
+                character.color = self.color
+        else:  # Otherwise, highlight the specified range
+            for character in line[self.start_index : self.end_index]:
+                character.color = self.color

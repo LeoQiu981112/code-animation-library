@@ -1,6 +1,3 @@
-# create custom token Token.Text.Whitespace
-
-
 class NordStyle:
     styles = {
         "Token.Comment": "#81a1c1",  # Comment style (light blue)
@@ -9,6 +6,7 @@ class NordStyle:
         "Token.Keyword.Constant": "#b48ead",  # Constant Keyword style (light purple)
         "Token.Name": "#88c0d0",  # Name style (light blue)
         "Token.String": "#a3be8c",  # String style (light green)
+        "Token.Literal.String.Single": "#a3be8c",  # String Single style (light green)
         "Token.Error": "#8f99a3",  # Error style (cool red)
         "Token.Number": "#8fbcbb",  # Number style (light teal)
         "Token.Literal.String.Double": "#a3be8c",  # String style (light green)
@@ -21,15 +19,15 @@ class NordStyle:
         "Token.Text": "#8fbcbb",  # Text style (light teal)
         "Token.Text.Whitespace": "#d8dee9",  # Whitespace style (silver/gray)
         "Token.Keyword.Namespace": "#b48ead",  # Keyword Namespace style (light purple)
-        "Token.Name.Class": "#bf85a8",  # Class Name style (cool red)
+        # Adjusted red colors for better aesthetics and readability
+        "Token.Name.Class": "#c76f7f",  # Class Name style (adjusted red)
         "Token.Name.Namespace": "#81a1c1",  # Namespace Name style (light blue)
-        "Token.Name.Function": "#bf85a8",  # Function Name style (cool red)
-        "Token.Name.Function.Magic": "#bf85a8",  # Magic Function Name style (cool red)
-        "Token.Name.Builtin.Pseudo": "#bf85a8",  # Builtin Pseudo Name style (cool red)
-        "Token.Name.Exception": "#bf85a8",  # Exception Name style (cool red)
+        "Token.Name.Function": "#c76f7f",  # Function Name style (adjusted red)
+        "Token.Name.Function.Magic": "#c76f7f",  # Magic Function Name style (adjusted red)
+        "Token.Name.Builtin.Pseudo": "#c76f7f",  # Builtin Pseudo Name style (adjusted red)
+        "Token.Name.Exception": "#c76f7f",  # Exception Name style (adjusted red)
         "Token.Operator.Word": "#81a1c1",  # Operator Word style (light blue)
-        "Token.Name.Builtin": "#bf85a8",  # Builtin Name style (cool red)
-        "Token.Emoji": "#ebcb8b",  # Emoji style (light yellow)
+        "Token.Name.Builtin": "#c76f7f",  # Builtin Name style (adjusted red)
     }
 
     def get_color(self, token_type):

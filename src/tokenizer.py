@@ -2,9 +2,16 @@ from pygments.lexers import get_lexer_by_name
 from pygments.formatters import RawTokenFormatter
 from pygments import highlight
 from typing import List, Tuple
-from src.character import Character
 from src.position import Position
 from src.nord_style import NordStyle
+from src.custom_token import Token
+from src.character import Character
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.grid import Grid
+
+NEWLINE = "\\n"
 
 
 class CodeTokenizer:
@@ -25,28 +32,47 @@ class CodeTokenizer:
         self.formatter = RawTokenFormatter()
         self.code_style = NordStyle()
 
-    def tokenize(self, grid_obj, code):
+    def process_token(
+        self, token: str, counter: int, line_number: int
+    ) -> Tuple[Token, int]:
         """
-        Tokenize the code into two lists: one for characters and one for token types.
+        Process an individual token and return the resulting Token object and updated counter.
         """
-        highlighted_code = highlight(code, self.lexer, self.formatter)
-        preprocessed_tokens: str = highlighted_code.decode("utf-8").strip().split("\n")
+        token_type, token_str = token.split("\t")
+        color = self.code_style.get_color(token_type)
+        token_obj = Token(token_type, color)
+        token_str = token_str[1:-1]  # Remove the surrounding quotes
 
+        for _, char in enumerate(token_str):
+            position = Position(
+                counter, line_number
+            )  # Use line_number for y-coordinate
+            character_obj = Character(char, position, color)
+            token_obj.add_character(character_obj)
+            counter += 1
+
+        return token_obj, counter
+
+    def tokenize_line(self, line_obj: "Line", code: str) -> None:
+        line_obj.clear()  # Clear the existing tokens
+        preprocessed_tokens: str = (
+            highlight(code, get_lexer_by_name(self.language), self.formatter)
+            .decode("utf-8")
+            .strip()
+            .split("\n")
+        )
         counter = 0
+
         for token in preprocessed_tokens:
-            token_type, token_str = token.split("\t")
-            token_str = token_str[1:-1]  # Remove the surrounding quotes
-            if token_str == "\\n":
-                # Newline: start a new line of code
-                grid_obj.add_line()
-                counter = 0  # Reset the counter for each new line
-                continue  # Skip to the next token
-            elif token_str.startswith("\\u") or token_str.startswith("\\U"):
-                token_str = token_str.encode().decode("unicode_escape")
-                token_type = "Token.Emoji"
-            color = self.code_style.get_color(token_type)
-            for i, char in enumerate(token_str):
-                # Create a new Character object for each character
-                position = Position(counter, len(grid_obj.grid) - 1)
-                grid_obj.add_character(char, token_type, color, position)
-                counter += 1  # Increase the counter for each character
+            if token.split("\t")[1][1:-1] == NEWLINE:  # If token represents a newline
+                continue
+            token_obj, counter = self.process_token(
+                token, counter, line_obj.line_number
+            )
+            line_obj.add_token(token_obj)
+
+    def tokenize_grid(self, grid_obj: "Grid", code: str) -> None:
+        lines = code.split("\n")
+        for line_number, line in enumerate(lines):
+            line_obj = grid_obj.get_line(line_number)
+            self.tokenize_line(line_obj, line)

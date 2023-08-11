@@ -1,12 +1,12 @@
 from src.image_generator import ImageGenerator
-from src.animations import AnimationQueue
+from src.animations import Animation, AnimationQueue
 from src.grid import Grid
 from multiprocessing import Pool
-from functools import partial
-import numpy as np  # Don't forget to import numpy
-import time
+import numpy as np
 import imageio
 import copy
+from typing import List, Tuple
+import logging
 
 
 class Video:
@@ -14,80 +14,99 @@ class Video:
     Class for managing the video stream.
     """
 
-    def __init__(self, path):
+    BACKGROUND_COLOR = (40, 40, 40, 255)
+
+    def __init__(
+        self,
+        path: str,
+        grid_obj: Grid,
+        cell_width: int = 40,
+        cell_height: int = 60,
+        font_size: int = 50,
+    ):
         self.output_path = path
-        # tweak later
-        self.cell_width = 20
-        self.cell_height = 20
-        self.font_size = 20
-        self.background_color = (40, 40, 40, 255)
+        self.grid_obj = grid_obj
+        self.cell_width = cell_width
+        self.cell_height = cell_height
+        self.font_size = font_size
+        self.animation_queue: AnimationQueue = AnimationQueue()
 
         self.frame_generator = ImageGenerator(
             font_size=self.font_size,
             cell_width=self.cell_width,
             cell_height=self.cell_height,
-            background_color=(40, 40, 40, 255),
+            background_color=self.BACKGROUND_COLOR,
+            show_line_numbers=True,
         )
+        self.DEBUG_FRAME = 110
 
-        self.animations = AnimationQueue()
+    def configure_logging(self, enable=True):
+        if enable:
+            logging.basicConfig(level=logging.DEBUG, format="%(message)s")
+        else:
+            logging.disable(logging.CRITICAL)
 
-    def add_animation(self, *args):
-        self.animations.extend(args)
-        print("test:", self.animations, "\n\n")
+    def debug_log(self, frame_index: int, message: str):
+        if frame_index == self.DEBUG_FRAME:
+            logging.debug(message)
 
-    # def generate_frame(self, frame_index, grid_obj, fps):
-    #     """
-    #     Generate and return a single frame of the video.
-
-    #     Parameters:
-    #         frame_index (int): The index of the current frame (starts from 0).
-    #         grid_obj (Grid): The Grid object representing the state of the animation.
-
-    #     Returns:
-    #         frame (numpy.ndarray): The generated frame as a NumPy array (image).
-    #     """
-    #     grid_copy = copy.deepcopy(grid_obj)
-    #     current_time = frame_index / fps
-    #     grid_copy.apply_animations(current_time)
-    #     frame = self.frame_generator.generate_image(grid_copy)
-    #     # frame.save(f"frames/frame_{frame_index}.png")
-    #     return frame
-
-    def generate_frame(self, frame_index, grid_obj, fps):
-        grid_copy = copy.deepcopy(grid_obj)
-        current_time = frame_index / fps
-        grid_copy.apply_animations(current_time)
+    def generate_frame(
+        self,
+        frame_index: int,
+        grid_obj: Grid,
+        grid_states: List[Animation],
+        visual_states: List[Animation],
+    ) -> np.ndarray:
+        self.configure_logging(enable=False)
+        grid_copy: Grid = self.prepare_grid_copy(
+            grid_obj, frame_index, grid_states, visual_states
+        )
         frame = self.frame_generator.generate_image(grid_copy)
-        frame_np = np.array(frame)  # Convert the PIL.Image object to a numpy array
-        return frame_np
+        return np.array(frame)
 
-        # def render_video(self, grid_obj, duration, output_filename="output.mp4", fps=30):
-        # num_frames = int(duration * fps)  # Calculate the total number of frames
-        # p = Pool()
-        # generate_frame_partial = partial(
-        #     self.generate_frame, grid_obj=grid_obj, fps=fps
-        # )
-        # frames = p.map(generate_frame_partial, range(num_frames))
-        # p.close()
-        # p.join()
+    def prepare_grid_copy(
+        self,
+        grid_obj: Grid,
+        frame_index: int,
+        grid_states: List[Animation],
+        visual_states: List[Animation],
+    ) -> Grid:
+        grid_copy: Grid = copy.deepcopy(grid_obj)
 
-        # # Save the frames as a video using imageio.mimsave
-        # imageio.mimsave(output_filename, frames, fps=fps, bitrate="5000k")
-        # return output_filename
+        for animation in grid_states[frame_index]:
+            self.debug_log(frame_index, f"before grid_states {animation}")
+            animation.apply(grid_copy, frame_index)
+            self.debug_log(frame_index, f"after grid_states {animation}")
+        for animation in visual_states[frame_index]:
+            animation.apply(grid_copy, frame_index)
+        return grid_copy
 
-    def render_video(self, grid_obj, duration, output_filename="output.mp4", fps=30):
-        num_frames = int(duration * fps)  # Calculate the total number of frames
-        p = Pool()
-        generate_frame_partial = partial(
-            self.generate_frame, grid_obj=grid_obj, fps=fps
-        )
-        frames = p.map(generate_frame_partial, range(num_frames))
-        p.close()
-        p.join()
+    def render_video(
+        self,
+        grid_obj: Grid,
+        duration: float,
+        output_filename: str = "output.mp4",
+        fps: int = 30,
+    ) -> str:
+        """
+        Renders the video to the specified output file.
+        """
+        num_frames = int(duration * fps)
+        (
+            visual_frame_states,
+            grid_frame_states,
+        ) = self.animation_queue.compute_animation_states(duration, fps)
+        self.configure_logging(enable=True)
+        args = [
+            (frame_index, grid_obj, grid_frame_states, visual_frame_states)
+            for frame_index in range(num_frames)
+        ]
 
-        # Save the frames as a video using imageio.get_writer
+        with Pool() as pool:
+            frames = pool.starmap(self.generate_frame, args)
+
         with imageio.get_writer(
-            output_filename, fps=fps, codec="libx264", bitrate="5000k"
+            output_filename, fps=fps, codec="libx264", bitrate="8000k"
         ) as writer:
             for frame in frames:
                 writer.append_data(frame)
