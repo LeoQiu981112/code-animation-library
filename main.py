@@ -8,9 +8,12 @@ from src.animations import (
     TypingEffect,
     ScrollToLine,
     UpdateLineContent,
+    MoveLine,
 )
 from src.image_generator import ImageGenerator
 from multiprocessing import Pool, freeze_support
+import os
+os.environ["IMAGEIO_FFMPEG_EXE"] = "/opt/homebrew/bin/ffmpeg"
 
 frame_generator = ImageGenerator(
     font_size=60,  # Increased from 40
@@ -60,7 +63,28 @@ def main():
                 start_frame=82,
                 end_frame=120,
                 line_number=i,
+                persist_duration=1,
+            )
+        )
+    left_bound = 0
+    right_bound = 1
+    for i in range(left_bound, right_bound):
+        video.animation_queue.add_visual_effect(
+            MoveLine(
+                start_frame=121,
+                end_frame=180,
+                line_number=i,
                 persist_duration=100,
+                target_line_number=i + right_bound,
+            )
+        )
+        video.animation_queue.add_visual_effect(
+            MoveLine(
+                start_frame=121,
+                end_frame=180,
+                line_number=(right_bound - left_bound + 1) - i,
+                persist_duration=100,
+                target_line_number=i,
             )
         )
 
@@ -68,7 +92,7 @@ def main():
     start_time = time.time()
 
     # Render the video
-    video.render_video(grid_obj, duration=10, fps=30)
+    video.render_video(grid_obj, duration=5, fps=60)
 
     # Calculate and print the elapsed time
     elapsed_time = time.time() - start_time

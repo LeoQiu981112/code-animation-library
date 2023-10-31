@@ -296,6 +296,44 @@ class TypingEffect(VisualEffect):
             token.set_visibility(True)
 
 
+class MoveLine(VisualEffect):
+    def __init__(
+        self, line_number, target_line_number, start_frame, end_frame, persist_duration
+    ):
+        super().__init__(start_frame, end_frame, line_number)
+        self.target_line_number = target_line_number
+        self.persist_duration = persist_duration
+
+    @staticmethod
+    def ease_in_quad(x):
+        return x * x
+
+    def apply(self, grid_copy: "Grid", frame_index):
+        if self.is_active(frame_index):
+            linear_progress = (frame_index - self.start_frame) / (
+                self.end_frame - self.start_frame
+            )
+            progress = self.ease_in_quad(linear_progress)
+            offset = (self.target_line_number - self.line_number) * progress
+            line = grid_copy.get_line(self.line_number)
+            for character in line.iter_characters():
+                character.set_visibility(True)
+                character.position.y += offset
+        elif (
+            self.is_finished(frame_index)
+            and frame_index <= self.end_frame + self.persist_duration
+        ):
+            self.persist(grid_copy)
+
+    def persist(self, grid: "Grid") -> None:
+        # characters should have the same offset as the last active frame
+        offset = self.target_line_number - self.line_number
+        line = grid.get_line(self.line_number)
+        for character in line.iter_characters():
+            character.set_visibility(True)
+            character.position.y += offset
+
+
 class BlinkEffect(VisualEffect):
     pass
 
